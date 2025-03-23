@@ -27,7 +27,6 @@ import mario_compose.composeapp.generated.resources.Res
 import mario_compose.composeapp.generated.resources.dirt
 import org.jetbrains.compose.resources.imageResource
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.microseconds
 import kotlin.time.Duration.Companion.milliseconds
 
 private val ColorSky = Color(0xff5c94fc)
@@ -54,7 +53,7 @@ fun createLevel(): Map<IntOffset, Boolean> {
 class WorldTick {
     val scrollX = mutableStateOf(0f)
 
-    private val scrollSpeed = 50
+    private val scrollSpeed = 100
     private var lastInput = PlayerInput()
 
     fun handleInput(input: PlayerInput) {
@@ -71,6 +70,7 @@ class WorldTick {
         }
 
         scrollX.value += (scrollSpeed * deltaTime).toFloat() * dir
+        scrollX.value = scrollX.value.coerceAtLeast(0f)
     }
 }
 
@@ -94,12 +94,10 @@ fun BoxWithConstraintsScope.WorldView(input: PlayerInput) {
                 val timeNowMs = currentTimeMillis()
                 val deltaTimeMs = timeNowMs - lastFrameTimeMs
                 val deltaTimeSec = deltaTimeMs / 1000.0
-                Logger.d { "TIME: $deltaTimeSec" }
                 ticker.tick(deltaTimeSec)
                 lastFrameTimeMs = timeNowMs
-
-                val freeTime = (DesiredFrameTimeMs - deltaTimeMs).coerceAtLeast(0)
-                delay(freeTime.milliseconds)
+                val idleTime = (DesiredFrameTimeMs - deltaTimeMs).coerceAtLeast(0)
+                delay(idleTime.milliseconds)
             }
         }
         onDispose {
@@ -111,26 +109,41 @@ fun BoxWithConstraintsScope.WorldView(input: PlayerInput) {
         ticker.handleInput(input)
     }
 
-    val (_, windowHeight) = with(density) {
+    val (windowWidthPx, windowHeightPx) = with(density) {
         this@WorldView.maxWidth.toPx() to this@WorldView.maxHeight.toPx()
     }
 
-    val scale = remember(windowHeight) { windowHeight / (WorldHeightInCells * WorldCellSize).toFloat() }
+    val scale = remember(windowHeightPx) { windowHeightPx / (WorldHeightInCells * WorldCellSize).toFloat() }
+
+    // scaled
+    val (windowWidthScaled, windowHeightScaled) = windowWidthPx / scale to windowHeightPx / scale
+
+    fun isCellVisible(cx: Int, cy: Int):Boolean {
+        if (cx > windowWidthScaled ||
+            cy > windowHeightScaled ||
+            (cx + WorldCellSize) < 0 ||
+            (cy + WorldCellSize) < 0) return false
+        return true
+    }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         drawRect(color = ColorSky)
 
+        var imagesDrawn = 0
         scale(scale, pivot = Offset(0f, 0f)) {
             level.forEach { cell ->
-                if (cell.value) {
-                    val x = cell.key.x * WorldCellSize
-                    val y = cell.key.y * WorldCellSize
+                val cellX = cell.key.x * WorldCellSize - ticker.scrollX.value.roundToInt()
+                val cellY = cell.key.y * WorldCellSize
+
+                if (cell.value && isCellVisible(cellX, cellY)) {
                     drawImage(
                         image = image,
                         filterQuality = FilterQuality.None,
-                        dstOffset = IntOffset(x - ticker.scrollX.value.roundToInt(), y),
+                        dstOffset = IntOffset(cellX, cellY),
                         dstSize = IntSize(WorldCellSize, WorldCellSize)
                     )
+
+                    ++imagesDrawn
                 }
             }
         }

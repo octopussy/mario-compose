@@ -19,6 +19,10 @@ fun main() = application {
 
     val windowState = rememberWindowState()
 
+    fun isKeyPressed(k: Key): Boolean {
+        return keyMap[k] ?: false
+    }
+
     Window(
         onCloseRequest = ::exitApplication,
         state = windowState,
@@ -30,11 +34,12 @@ fun main() = application {
                 keyMap[key.key] = false
             }
 
+
             input.value = input.value.copy(
-                leftPressed = keyMap[Key.A] ?: false,
-                upPressed = keyMap[Key.W] ?: false,
-                rightPressed = keyMap[Key.D] ?: false,
-                downPressed = keyMap[Key.S] ?: false,
+                leftPressed = isKeyPressed(Key.A) || isKeyPressed(Key.DirectionLeft),
+                upPressed = isKeyPressed(Key.W) || isKeyPressed(Key.DirectionUp),
+                rightPressed = isKeyPressed(Key.D) || isKeyPressed(Key.DirectionRight),
+                downPressed = isKeyPressed(Key.S) || isKeyPressed(Key.DirectionDown),
             )
             true
         },
