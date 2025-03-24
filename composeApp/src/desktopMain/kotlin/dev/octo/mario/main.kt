@@ -7,7 +7,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
@@ -17,7 +19,9 @@ fun main() = application {
     val input = remember { mutableStateOf(PlayerInput()) }
     val keyMap = remember { mutableMapOf<Key, Boolean>() }
 
-    val windowState = rememberWindowState()
+    val windowState = rememberWindowState(
+        size = DpSize(1280.dp, 720.dp)
+    )
 
     fun isKeyPressed(k: Key): Boolean {
         return keyMap[k] ?: false
@@ -40,6 +44,8 @@ fun main() = application {
                 upPressed = isKeyPressed(Key.W) || isKeyPressed(Key.DirectionUp),
                 rightPressed = isKeyPressed(Key.D) || isKeyPressed(Key.DirectionRight),
                 downPressed = isKeyPressed(Key.S) || isKeyPressed(Key.DirectionDown),
+                jumpPressed = isKeyPressed(Key.Spacebar) || isKeyPressed(Key.J),
+                firePressed = isKeyPressed(Key.Z) || isKeyPressed(Key.K),
             )
             true
         },

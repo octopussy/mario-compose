@@ -4,5 +4,7 @@ data class PlayerInput(
     val leftPressed: Boolean = false,
     val rightPressed: Boolean = false,
     val upPressed: Boolean = false,
-    val downPressed: Boolean = false
+    val downPressed: Boolean = false,
+    val jumpPressed: Boolean = false,
+    val firePressed: Boolean = false,
 )

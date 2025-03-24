@@ -1,6 +1,7 @@
 package dev.octo.mario
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
@@ -28,26 +29,40 @@ fun DebugInputView(input: PlayerInput) {
         }
     }
 
-    Box(modifier = Modifier.size(110.dp).padding(4.dp)) {
+    Row {
+        Box(modifier = Modifier.size(110.dp).padding(4.dp)) {
+            Btn(
+                modifier = Modifier.align(Alignment.CenterStart),
+                text = "LEFT",
+                pressed = input.leftPressed
+            )
+            Btn(
+                modifier = Modifier.align(Alignment.TopCenter),
+                text = "UP",
+                pressed = input.upPressed
+            )
+            Btn(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                text = "RIGHT",
+                pressed = input.rightPressed
+            )
+            Btn(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                text = "DOWN",
+                pressed = input.downPressed
+            )
+        }
+
         Btn(
-            modifier = Modifier.align(Alignment.CenterStart),
-            text = "LEFT",
-            pressed = input.leftPressed
+            modifier = Modifier,
+            text = "JUMP",
+            pressed = input.jumpPressed
         )
         Btn(
-            modifier = Modifier.align(Alignment.TopCenter),
-            text = "UP",
-            pressed = input.upPressed
+            modifier = Modifier,
+            text = "FIRE",
+            pressed = input.firePressed
         )
-        Btn(
-            modifier = Modifier.align(Alignment.CenterEnd),
-            text = "RIGHT",
-            pressed = input.rightPressed
-        )
-        Btn(
-            modifier = Modifier.align(Alignment.BottomCenter),
-            text = "DOWN",
-            pressed = input.downPressed
-        )
+
     }
 }

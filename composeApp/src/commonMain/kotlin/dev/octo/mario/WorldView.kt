@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -37,8 +38,9 @@ const val LevelHeight = 30
 const val DesiredFrameTime = 1 / 60.0
 const val DesiredFrameTimeMs = (DesiredFrameTime * 1000).toLong()
 
-const val Gravity = 500.0
+const val Gravity = 1000.0
 const val PlayerStartWalkAcceleration = 700.0
+const val PlayerJumpAcceleration = 300.0
 const val PlayerWalkSpeed = 120.0
 
 fun createLevel(): Map<IntOffset, Boolean> {
@@ -59,7 +61,7 @@ fun createLevel(): Map<IntOffset, Boolean> {
 }
 
 @Composable
-fun BoxWithConstraintsScope.WorldView(input: PlayerInput, ticker: GameTicker) {
+fun BoxWithConstraintsScope.WorldView(ticker: GameTicker) {
     val density = LocalDensity.current
 
     val level = remember { createLevel() }
@@ -69,9 +71,12 @@ fun BoxWithConstraintsScope.WorldView(input: PlayerInput, ticker: GameTicker) {
 
     var worldScrollX by remember { mutableStateOf(0) }
 
+    var playerOnGround by remember { mutableStateOf(false) }
     var playerPosition by remember { mutableStateOf(IntOffset(64, 0)) }
     var playerVelocityX by remember { mutableStateOf(0.0) }
     var playerVelocityY by remember { mutableStateOf(0.0) }
+
+    var isJumpPressed by remember { mutableStateOf(false) }
 
     val (windowWidthPx, windowHeightPx) = with(density) {
         this@WorldView.maxWidth.toPx() to this@WorldView.maxHeight.toPx()
@@ -106,6 +111,7 @@ fun BoxWithConstraintsScope.WorldView(input: PlayerInput, ticker: GameTicker) {
                 currentInput.leftPressed -> -1
                 else -> 0
             }
+
             val currentDir = sign(playerVelocityX).toInt()
             var currentVelXAbs = abs(playerVelocityX)
 
@@ -113,30 +119,62 @@ fun BoxWithConstraintsScope.WorldView(input: PlayerInput, ticker: GameTicker) {
                 currentVelXAbs = 0.0
             }
 
+            // horizontal acceleration
             if (currentInput.rightPressed || currentInput.leftPressed) {
-                val newVelAbs = (currentVelXAbs + PlayerStartWalkAcceleration * dt).coerceAtMost(PlayerWalkSpeed)
+                val d = if (!playerOnGround) 0.3 else 1.0
+                val newVelAbs = (currentVelXAbs + PlayerStartWalkAcceleration * dt * d).coerceAtMost(PlayerWalkSpeed)
                 playerVelocityX = newVelAbs * inputDir
             } else {
                 val newVelAbs = (currentVelXAbs - PlayerStartWalkAcceleration * dt).coerceAtLeast(0.0)
                 playerVelocityX = newVelAbs * currentDir
             }
 
-            // apply gravity
-            val groundLevel = checkOnGround(playerPosition.x, playerPosition.y, 16, 16)
-            if (groundLevel == null) {
+            // handle jump
+            if (playerOnGround) {
+                // just pressed?
+                if (!isJumpPressed && currentInput.jumpPressed) {
+                    playerVelocityY = -PlayerJumpAcceleration
+
+                }
+                isJumpPressed = currentInput.jumpPressed
+            }
+
+            if (playerVelocityY < 0) {
+                playerOnGround = false
+            }
+
+            // move player horizontally
+            val resultX = (playerPosition.x + playerVelocityX * dt).roundToInt()
+
+            // vertical acceleration
+            if (!playerOnGround) {
                 playerVelocityY += Gravity * dt
             } else {
                 playerVelocityY = 0.0
             }
+            // calc next Y position
+            val nextY = (playerPosition.y + playerVelocityY * dt).roundToInt()
 
-            val newX = (playerPosition.x + playerVelocityX * dt).roundToInt()
-            var newY = groundLevel ?: (playerPosition.y + playerVelocityY * dt).roundToInt()
-            if (groundLevel != null) {
-                newY -= 16
+            val downSweepDistance = 1
+            val groundLevel = checkOnGround(resultX, nextY + downSweepDistance, 16, 16)
+
+            if ((playerOnGround && groundLevel == null)) {
+                // TODO mario sprite size (16)
+                playerOnGround = false
             }
-            playerPosition = playerPosition.copy(x = newX, y = newY)
 
-            worldScrollX = (newX - windowWidthScaled / 2.0)
+            val resultY = if (playerVelocityY > 0 && groundLevel != null) {
+                playerOnGround = true
+                playerVelocityY = 0.0
+                groundLevel - 16
+            } else {
+                nextY
+            }
+
+            playerPosition = playerPosition.copy(x = resultX, y = resultY)
+
+            // update camera
+            worldScrollX = (resultX - windowWidthScaled / 2.0)
                 .roundToInt()
                 .coerceAtLeast(0)
         }

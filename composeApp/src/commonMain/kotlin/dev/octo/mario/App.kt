@@ -45,7 +45,7 @@ fun App(input: PlayerInput) {
 
     MaterialTheme {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            WorldView(input, ticker)
+            WorldView(ticker)
             DebugInputView(input)
         }
     }

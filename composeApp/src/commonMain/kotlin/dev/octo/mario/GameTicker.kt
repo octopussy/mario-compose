@@ -5,12 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 typealias TickListener = (dt: Double) -> Unit
 
 class GameTicker {
-    val currentFrame = mutableStateOf(0)
-
-    private val scrollSpeed = 100
-    val lastInput = mutableStateOf(PlayerInput())
-
     private val tickListeners = mutableSetOf<TickListener>()
+
+    val lastInput = mutableStateOf(PlayerInput())
+    val currentFrame = mutableStateOf(0)
 
     fun handleInput(input: PlayerInput) {
         lastInput.value = input
